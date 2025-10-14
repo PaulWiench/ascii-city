@@ -1,3 +1,4 @@
+import json
 import requests
 
 
@@ -9,4 +10,7 @@ with open('buildings.overpassql', 'r') as query:
 
 r = requests.post(url, data=payload)
 
-print(r.json())
+building_data = r.json()
+
+for element in building_data["elements"]:
+    print(element["tags"]["building"])

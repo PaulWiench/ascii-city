@@ -13,8 +13,10 @@ with open('buildings.overpassql', 'r') as query:
     payload += (query.read().replace('\n', ''))
 
 r = requests.post(url, data=payload)
-
 building_data = r.json()
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 
 building_geometries = []
 for element in building_data["elements"]:
@@ -23,14 +25,11 @@ for element in building_data["elements"]:
         geometry.append((lat_long_dict['lat'], lat_long_dict['lon']))
     building_geometries.append(geometry)
 
-geom = np.array(building_geometries[0])
-x, y = geom[:, 0], geom[:, 1]
+    geom = np.array(geometry)
+    x, y = geom[:, 0], geom[:, 1]
 
-bottom = np.column_stack((x, y, np.zeros_like(x)))
+    bottom = np.column_stack((x, y, np.zeros_like(x)))
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
+    ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
 
 plt.show()

@@ -18,12 +18,19 @@ building_data = r.json()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-building_geometries = []
+floor_height = 3
+default_height = 10
+
 for element in building_data["elements"]:
     geometry = []
     for lat_long_dict in element["geometry"]:
         geometry.append((lat_long_dict['lat'], lat_long_dict['lon']))
-    building_geometries.append(geometry)
+
+    if "building:levels" in element["tags"]:
+        levels = int(element["tags"]["building:levels"])
+        height = levels * floor_height
+    else:
+        height = default_height
 
     geom = np.array(geometry)
     x, y = geom[:, 0], geom[:, 1]

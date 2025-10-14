@@ -33,7 +33,7 @@ for element in building_data["elements"]:
         height = default_height
 
     geom = np.array(geometry)
-    x, y = geom[:, 0], geom[:, 1]
+    y, x = geom[:, 0], geom[:, 1]
 
     bottom = np.column_stack((x, y, np.zeros_like(x)))
     top = np.column_stack((x, y, np.full_like(x, height)))

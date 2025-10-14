@@ -36,7 +36,13 @@ for element in building_data["elements"]:
     x, y = geom[:, 0], geom[:, 1]
 
     bottom = np.column_stack((x, y, np.zeros_like(x)))
+    top = np.column_stack((x, y, np.full_like(x, height)))
+
+    for idx in range(len(x) - 1):
+        verts = [[bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]]]
+        ax.add_collection3d(Poly3DCollection(verts, color='gray'))
 
     ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
+    ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
 plt.show()

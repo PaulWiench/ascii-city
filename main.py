@@ -1,13 +1,14 @@
 import json
 import requests
+import math
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 
 
-lat = 48.748297
-lon = 9.104774
+lat_center = 48.748297
+lon_center = 9.104774
 radius = 100
 
 url = "https://overpass-api.de/api/interpreter"
@@ -19,7 +20,7 @@ url = "https://overpass-api.de/api/interpreter"
 payload = f"""
 [out:json];
 (
-  way["building"](around:{radius},{lat},{lon});
+  way["building"](around:{radius},{lat_center},{lon_center});
 );
 out geom;
 """
@@ -35,8 +36,9 @@ default_height = 10
 
 for element in building_data["elements"]:
     geometry = []
-    for lat_long_dict in element["geometry"]:
-        geometry.append((lat_long_dict['lat'], lat_long_dict['lon']))
+    for node in element["geometry"]:
+        lat = node["lat"]
+        lon = node['lon']
 
     if "building:levels" in element["tags"]:
         levels = int(element["tags"]["building:levels"])

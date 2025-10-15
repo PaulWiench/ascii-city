@@ -6,11 +6,23 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 
 
+lat = 48.748297
+lon = 9.104774
+radius = 100
+
 url = "https://overpass-api.de/api/interpreter"
 
-payload = r''
-with open('buildings.overpassql', 'r') as query:
-    payload += (query.read().replace('\n', ''))
+# payload = r''
+# with open('buildings.overpassql', 'r') as query:
+#     payload += (query.read().replace('\n', ''))
+
+payload = f"""
+[out:json];
+(
+  way["building"](around:{radius},{lat},{lon});
+);
+out geom;
+"""
 
 r = requests.post(url, data=payload)
 building_data = r.json()

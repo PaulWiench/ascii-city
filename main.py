@@ -31,42 +31,48 @@ r = requests.post(url, data=payload)
 building_data = r.json()
 
 fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+ax = fig.add_subplot(111, projection="3d")
 
 floor_height = 3
 default_height = 10
 
-for element in building_data["elements"]:
-    geometry = []
-    for node in element["geometry"]:
-        lat = node["lat"]
-        lon = node['lon']
+buildings = building_data["elements"]
+building = buildings[0]
 
-        # Transformation from geographic coordinates to cartesian
-        x = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
-        y = radius_earth * (lat - lat_center) * math.pi / 180
+geometry = []
+for node in building["geometry"]:
+    lat = node["lat"]
+    lon = node['lon']
 
-        # Normalize coordinates
-        x = x / radius
-        y = y / radius
+    # Transformation from geographic coordinates to cartesian
+    x = radius_earth * (lat - lat_center) * math.pi / 180
+    y = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
 
-    if "building:levels" in element["tags"]:
-        levels = int(element["tags"]["building:levels"])
-        height = levels * floor_height
-    else:
-        height = default_height
+    # Normalize coordinates
+    x /= radius
+    y /= radius
 
-    geom = np.array(geometry)
-    y, x = geom[:, 0], geom[:, 1]
+    geometry.append((x, y))
 
-    bottom = np.column_stack((x, y, np.zeros_like(x)))
-    top = np.column_stack((x, y, np.full_like(x, height)))
+if "building:levels" in building["tags"]:
+    levels = int(building["tags"]["building:levels"])
+    height = levels * floor_height
+else:
+    height = default_height
 
-    for idx in range(len(x) - 1):
-        verts = [[bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]]]
-        ax.add_collection3d(Poly3DCollection(verts, color='gray'))
+height /= radius
 
-    ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
-    ax.add_collection3d(Poly3DCollection([top], color='gray'))
+geom = np.array(geometry)
+x, y = geom[:, 0], geom[:, 1]
+
+bottom = np.column_stack((x, y, np.zeros_like(x)))
+top = np.column_stack((x, y, np.full_like(x, height)))
+
+for idx in range(len(x) - 1):
+    verts = [[bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]]]
+    ax.add_collection3d(Poly3DCollection(verts, color='gray'))
+
+ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
+ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
 plt.show()

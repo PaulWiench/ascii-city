@@ -11,6 +11,8 @@ lat_center = 48.748297
 lon_center = 9.104774
 radius = 100
 
+radius_earth = 6371000
+
 url = "https://overpass-api.de/api/interpreter"
 
 # payload = r''
@@ -39,6 +41,10 @@ for element in building_data["elements"]:
     for node in element["geometry"]:
         lat = node["lat"]
         lon = node['lon']
+
+        # Transformation from geographic coordinates to cartesian
+        x = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
+        y = radius_earth * (lat - lat_center) * math.pi / 180
 
     if "building:levels" in element["tags"]:
         levels = int(element["tags"]["building:levels"])

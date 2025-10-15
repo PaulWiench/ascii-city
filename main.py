@@ -46,6 +46,10 @@ for element in building_data["elements"]:
         x = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
         y = radius_earth * (lat - lat_center) * math.pi / 180
 
+        # Normalize coordinates
+        x = x / radius
+        y = y / radius
+
     if "building:levels" in element["tags"]:
         levels = int(element["tags"]["building:levels"])
         height = levels * floor_height

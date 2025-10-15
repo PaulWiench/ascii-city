@@ -49,8 +49,8 @@ for node in building["geometry"]:
     y = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
 
     # Normalize coordinates
-    x /= radius
-    y /= radius
+    # x /= radius
+    # y /= radius
 
     geometry.append((x, y))
 
@@ -60,7 +60,7 @@ if "building:levels" in building["tags"]:
 else:
     height = default_height
 
-height /= radius
+# height /= radius
 
 geom = np.array(geometry)
 x, y = geom[:, 0], geom[:, 1]
@@ -76,3 +76,45 @@ ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
 ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
 plt.show()
+
+# ascii_chars = np.array(list(" .:-=+*#%@"))
+
+# def render_ascii(res_x, res_y):
+#     # Generate grid coordinates
+#     x = np.linspace(-1, 1, res_x)
+#     y = np.linspace(-1, 1, res_y)
+#     X, Y = np.meshgrid(x, y)
+    
+#     # Define a simple 3D shape: z = sqrt(1 - x^2 - y^2) (sphere upper hemisphere)
+#     mask = X**2 + Y**2 <= 1
+#     Z = np.zeros_like(X)
+#     Z[mask] = np.sqrt(1 - X[mask]**2 - Y[mask]**2)
+    
+#     # Define a light direction (normalized)
+#     L = np.array([0.4, 0.4, 0.8])
+#     L /= np.linalg.norm(L)
+    
+#     # Compute surface normals
+#     Nx = X
+#     Ny = Y
+#     Nz = Z
+#     norm = np.sqrt(Nx**2 + Ny**2 + Nz**2)
+#     Nx, Ny, Nz = Nx / norm, Ny / norm, Nz / norm
+
+#     # Lambertian shading: I = max(0, n·l)
+#     I = Nx*L[0] + Ny*L[1] + Nz*L[2]
+#     I = np.clip(I, 0, 1)
+    
+#     # Map intensity to ASCII characters
+#     indices = (I * (len(ascii_chars)-1)).astype(int)
+#     indices[~mask] = 0  # background
+#     chars = ascii_chars[indices]
+    
+#     # Print ASCII image
+#     print(f"\nResolution: {res_x}x{res_y}\n")
+#     for row in chars[::-1]:  # flip vertically
+#         print("".join(row))
+
+# # Try multiple resolutions
+# for res in [(20, 10), (40, 20), (80, 40), (160, 80)]:
+#     render_ascii(*res)

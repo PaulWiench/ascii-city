@@ -11,24 +11,32 @@ class AsciiRenderer:
         self.canvas_plane_x = canvas_res[0]
         self.canvas_plane_y = canvas_res[1] 
 
+        self.asciis = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"]
+
+    def _luminance_to_ascii(
+            self,
+            luminance: float
+    ) -> str:
+        idx = int(luminance * (len(self.asciis) - 1))
+        return self.asciis[idx]
+
     def render(
             self,
-            points: list
+            points: dict
     ) -> None:
-        for y in range(self.canvas_plane_y + 2):
-            for x in range(self.canvas_plane_x + 2):
-                if x == 0 or x == (self.canvas_plane_x + 1) or y == 0 or y == (self.canvas_plane_y + 1):
-                    print("%", end="" if x != self.canvas_plane_x + 1 else "\n")
-                elif np.any(np.all(np.array([x - 1, y - 1]) == points, axis=1)):
-                    print("#", end="" if x != self.canvas_plane_x + 1 else "\n")
-                else:
-                    print(" ", end="" if x != self.canvas_plane_x + 1 else "\n")
+        for y in range(self.canvas_plane_y):
+            row = []
+            for x in range(self.canvas_plane_x):
+                luminance, _, _ = points.get((x, y), (0.0, 0.0, 0.0))
+                row.append(self._luminance_to_ascii(luminance))
+            print("".join(row))
 
 
 class Camera:
     def __init__(
             self,
             camera_pos: np.ndarray,
+            focal_length: float,
             canvas_middle: np.ndarray,
             pixel_size_x: float,
             pixel_size_y: float
@@ -37,12 +45,12 @@ class Camera:
         self.world_center = np.array([0.0, 0.0, 0.0])
         world_z_axis = np.array([0.0, 0.0, 1.0])
 
-        world_middle = np.array([0.5, 0.5, 0.5])
+        self.world_middle = np.array([0.5, 0.5, 0.5])
 
         # Define camera coordinate system
         self.camera_center = camera_pos
 
-        self.camera_z_axis = world_middle - self.camera_center
+        self.camera_z_axis = self.world_middle - self.camera_center
         self.camera_z_axis /= np.linalg.norm(self.camera_z_axis)
 
         self.camera_y_axis = np.cross(self.camera_z_axis, world_z_axis)
@@ -50,17 +58,12 @@ class Camera:
 
         self.camera_x_axis = np.cross(self.camera_y_axis, self.camera_z_axis)
 
-        self.focal_length = 1.0
+        self.focal_length = focal_length
 
         # Define canvas parameter
         self.canvas_middle = canvas_middle
         self.pixel_size_x = pixel_size_x
         self.pixel_size_y = pixel_size_y
-
-        # Define light source
-        light_center = np.array([1.0, 1.0, 1.0])
-        light_path = light_center - world_middle
-        light_path /= np.linalg.norm(light_path)
 
         # Define projection matrices
         self.int_matrix, self.ext_matrix = self.compute_projection_matrices()
@@ -124,24 +127,28 @@ class Camera:
     def world_to_camera(
             self,
             points_world: list
-    ) -> list:
+    ) -> tuple:
         points_world_homogeneous = self.cartesian_to_homogeneous(points_world)
         
         points_camera_homogeneous = []
+        points_z_values = []
         for point_world_homogeneous in points_world_homogeneous:
             point_camera_homogeneous = self.int_matrix @ self.ext_matrix @ point_world_homogeneous
             points_camera_homogeneous.append(point_camera_homogeneous)
+            points_z_values.append(point_camera_homogeneous[-1])
 
         points_camera = self.homogeneous_to_cartesian(points_camera_homogeneous)
 
-        return points_camera
+        return points_camera, points_z_values
 
 
 class CanvasHandler:
     def __init__(
             self,
             canvas_res: tuple,
-            camera_pos: np.ndarray
+            light_pos: np.ndarray,
+            camera_pos: np.ndarray,
+            focal_length: float
     ) -> None:
         # Define canvas
         self.canvas_plane_x = canvas_res[0]
@@ -152,33 +159,76 @@ class CanvasHandler:
         self.pixel_size_y = 1.0 / (self.canvas_plane_y - 1)
 
         self.canvas_z_buffer = np.array(canvas_res)
+        self.canvas = {}
 
         # Camera
-        self.cam = Camera(camera_pos, self.canvas_middle, self.pixel_size_x, self.pixel_size_y)
+        self.camera_center = camera_pos
+        self.cam = Camera(camera_pos, focal_length, self.canvas_middle, self.pixel_size_x, self.pixel_size_y)
+
+        # Define light source
+        light_center = light_pos
+        self.light_path = light_center - self.cam.world_middle
+        self.light_path /= np.linalg.norm(self.light_path)
 
     def process_objects(
             self,
             objects: list
-    ) -> list:
-        points_objects = []
+    ) -> None:
         for object in objects:
-            points_object = self.process_polygons(object)
-            points_objects += points_object
-
-        return points_objects
+            self.process_polygons(object)
 
     def process_polygons(
             self,
             polygons: list
-    ) -> list:
-        points_polygons = []
+    ) -> None:
+        object_center = np.mean(np.vstack(polygons), axis=0)
+
         for polygon in polygons:
-            vertices = self.cam.world_to_camera(polygon)
+            normal = self.compute_normal(polygon, object_center)
+            
+            luminance = np.dot(normal, self.light_path)
+            luminance = np.clip(luminance, 0.0, 1.0)
+
+            polygon_center = np.mean(polygon, axis=0)
+            closeness = np.linalg.norm(self.camera_center - polygon_center)
+
+            vertices, z_values = self.cam.world_to_camera(polygon)
             points_camera = self.points_in_polygon(vertices)
             points_pixel = self.cartesian_to_pixel(points_camera)
-            points_polygons += points_pixel
 
-        return points_polygons
+            for point_pixel in points_pixel:
+                coords = tuple(int(p) for p in point_pixel)
+                min_z_value = np.min(z_values)
+
+                if coords in self.canvas.keys():
+                    old_luminance = self.canvas[coords][0]
+                    old_min_z_value = self.canvas[coords][1]
+                    old_closeness = self.canvas[coords][2]
+
+                    if old_min_z_value > min_z_value:
+                        self.canvas[coords] = [luminance, min_z_value, closeness]
+                    elif old_min_z_value == min_z_value:
+                        if old_closeness > closeness:
+                            self.canvas[coords] = [luminance, min_z_value, closeness]
+                else:
+                    self.canvas[coords] = [luminance, min_z_value, closeness]
+
+    def compute_normal(
+            self,
+            polygon: list,
+            object_center: np.ndarray
+    ) -> np.ndarray:
+        polygon_center = np.mean(polygon, axis=0)
+        center_line = polygon_center - object_center
+        center_line /= np.linalg.norm(center_line)
+
+        normal = np.cross(polygon[1] - polygon[0], polygon[2] - polygon[0])
+        normal /= np.linalg.norm(normal)
+
+        if np.dot(center_line, normal) < 0:
+            normal = -normal
+
+        return normal
 
     def points_in_polygon(self, polygon, grid_spacing=1.0):
         polygon = np.asarray(polygon)
@@ -221,10 +271,12 @@ class CanvasHandler:
         return points_pixel            
 
 
-canvas_resolution = (40, 20)
-camera_position = np.array([0.5, -1.0, 0.5])
+canvas_resolution = (80, 40)
+light_position = np.array([1.0, 0.4, 0.8])
+camera_position = np.array([1.5, -2.0, 1.0])
+focal_length = 2.0
 
-handler = CanvasHandler(canvas_resolution, camera_position)
+handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
 renderer = AsciiRenderer(canvas_resolution)
 
 # Define vertices of a cube floating in the middle of a unit room
@@ -278,5 +330,6 @@ for face in cube_faces:
 
 cubes = [cube]
 
-points = handler.process_objects(cubes)
+handler.process_objects(cubes)
+points = handler.canvas
 renderer.render(points)

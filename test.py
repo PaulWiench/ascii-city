@@ -6,13 +6,35 @@ import numpy as np
 class AsciiRenderer:
     def __init__(
             self,
-            canvas_res: tuple,
-            camera_pos: np.ndarray
+            canvas_res: tuple
+    ) -> None:
+        self.canvas_plane_x = canvas_res[0]
+        self.canvas_plane_y = canvas_res[1] 
+
+    def render(
+            self,
+            points: list
+    ) -> None:
+        for y in range(self.canvas_plane_y + 2):
+            for x in range(self.canvas_plane_x + 2):
+                if x == 0 or x == (self.canvas_plane_x + 1) or y == 0 or y == (self.canvas_plane_y + 1):
+                    print("%", end="" if x != self.canvas_plane_x + 1 else "\n")
+                elif np.any(np.all(np.array([x - 1, y - 1]) == points, axis=1)):
+                    print("#", end="" if x != self.canvas_plane_x + 1 else "\n")
+                else:
+                    print(" ", end="" if x != self.canvas_plane_x + 1 else "\n")
+
+
+class Camera:
+    def __init__(
+            self,
+            camera_pos: np.ndarray,
+            canvas_middle: np.ndarray,
+            pixel_size_x: float,
+            pixel_size_y: float
     ) -> None:
         # Define world coordinate system
         self.world_center = np.array([0.0, 0.0, 0.0])
-        world_x_axis = np.array([1.0, 0.0, 0.0])
-        world_y_axis = np.array([0.0, 1.0, 0.0])
         world_z_axis = np.array([0.0, 0.0, 1.0])
 
         world_middle = np.array([0.5, 0.5, 0.5])
@@ -30,17 +52,10 @@ class AsciiRenderer:
 
         self.focal_length = 1.0
 
-        camer_plane_middle = np.array([0.0, 0.0])
-        camera_plane_x = 1.0
-        camera_plane_y = 1.0
-
-        # Define pixel canvas
-        self.canvas_plane_x = canvas_resolution[0]
-        self.canvas_plane_y = canvas_resolution[1]
-        self.canvas_middle = np.array([math.floor(self.canvas_plane_x / 2), math.floor(self.canvas_plane_y / 2)], dtype=int)
-
-        self.pixel_size_x = camera_plane_x / (self.canvas_plane_x - 1)
-        self.pixel_size_y = camera_plane_y / (self.canvas_plane_y - 1)
+        # Define canvas parameter
+        self.canvas_middle = canvas_middle
+        self.pixel_size_x = pixel_size_x
+        self.pixel_size_y = pixel_size_y
 
         # Define light source
         light_center = np.array([1.0, 1.0, 1.0])
@@ -106,18 +121,6 @@ class AsciiRenderer:
         
         return points_cartesian
 
-    def cartesian_to_pixel(
-            self,
-            points_cartesian: list
-    ) -> list:
-        points_pixel = []
-        for point_cartesian in points_cartesian:
-            point_cartesian[1] = self.canvas_plane_y - point_cartesian[1]
-            point_pixel = np.floor(point_cartesian)
-            points_pixel.append(point_pixel)
-
-        return points_pixel
-
     def world_to_camera(
             self,
             points_world: list
@@ -133,22 +136,51 @@ class AsciiRenderer:
 
         return points_camera
 
+
+class CanvasHandler:
+    def __init__(
+            self,
+            canvas_res: tuple,
+            camera_pos: np.ndarray
+    ) -> None:
+        # Define canvas
+        self.canvas_plane_x = canvas_res[0]
+        self.canvas_plane_y = canvas_res[1]
+        self.canvas_middle = np.array([math.floor(self.canvas_plane_x / 2), math.floor(self.canvas_plane_y / 2)], dtype=int)
+
+        self.pixel_size_x = 1.0 / (self.canvas_plane_x - 1)
+        self.pixel_size_y = 1.0 / (self.canvas_plane_y - 1)
+
+        self.canvas_z_buffer = np.array(canvas_res)
+
+        # Camera
+        self.cam = Camera(camera_pos, self.canvas_middle, self.pixel_size_x, self.pixel_size_y)
+
+    def process_objects(
+            self,
+            objects: list
+    ) -> list:
+        points_objects = []
+        for object in objects:
+            points_object = self.process_polygons(object)
+            points_objects += points_object
+
+        return points_objects
+
+    def process_polygons(
+            self,
+            polygons: list
+    ) -> list:
+        points_polygons = []
+        for polygon in polygons:
+            vertices = self.cam.world_to_camera(polygon)
+            points_camera = self.points_in_polygon(vertices)
+            points_pixel = self.cartesian_to_pixel(points_camera)
+            points_polygons += points_pixel
+
+        return points_polygons
+
     def points_in_polygon(self, polygon, grid_spacing=1.0):
-        """
-        Compute all grid points inside a polygon.
-
-        Parameters
-        ----------
-        polygon : (N, 2) array-like
-            Ordered vertices of the polygon (closed or open).
-        grid_spacing : float
-            Spacing between grid points.
-
-        Returns
-        -------
-        points_inside : (M, 2) ndarray
-            All grid points (x, y) inside the polygon.
-        """
         polygon = np.asarray(polygon)
         if not np.allclose(polygon[0], polygon[-1]):
             polygon = np.vstack([polygon, polygon[0]])  # ensure closed
@@ -176,57 +208,24 @@ class AsciiRenderer:
 
         return grid_points[inside]
 
-
-    def render(
+    def cartesian_to_pixel(
             self,
-            points_world: list
-    ) -> None:
-        points_camera = self.world_to_camera(points_world)
+            points_cartesian: list
+    ) -> list:
+        points_pixel = []
+        for point_cartesian in points_cartesian:
+            point_cartesian[1] = self.canvas_plane_y - point_cartesian[1]
+            point_pixel = np.floor(point_cartesian)
+            points_pixel.append(point_pixel)
 
-        # ---
-
-        # draw_points = []
-        # for point_camera in points_camera:
-        #     draw_points.append(point_camera)
-
-        # point_temp = points_camera[-1]
-        # edge_temp = points_camera[-2] - points_camera[-1]
-
-        # for point in points_camera:
-        #     edge = point_temp - point
-
-        #     for i in range(self.canvas_plane_x):
-        #         edge_vert = point + i / self.canvas_plane_x * edge
-        #         for j in range(self.canvas_plane_y):
-        #             surface_vert = edge_vert + j / self.canvas_plane_y * edge_temp
-        #             draw_points.append(surface_vert)
-                
-
-        #     point_temp2 = point_temp
-        #     point_temp = point
-        #     edge_temp = point_temp2 - point_temp
-
-        # ---
-
-        draw_points = self.points_in_polygon(points_camera)
-
-        # draw_points = points_camera
-        points_canvas = self.cartesian_to_pixel(draw_points)
-
-        # Draw canvas
-        for y in range(self.canvas_plane_y + 2):
-            for x in range(self.canvas_plane_x + 2):
-                if x == 0 or x == (self.canvas_plane_x + 1) or y == 0 or y == (self.canvas_plane_y + 1):
-                    print("%", end="" if x != self.canvas_plane_x + 1 else "\n")
-                elif np.any(np.all(np.array([x - 1, y - 1]) == points_canvas, axis=1)):
-                    print("#", end="" if x != self.canvas_plane_x + 1 else "\n")
-                else:
-                    print(" ", end="" if x != self.canvas_plane_x + 1 else "\n")
+        return points_pixel            
 
 
-canvas_resolution = (160, 80)
+canvas_resolution = (40, 20)
 camera_position = np.array([0.5, -1.0, 0.5])
-renderer = AsciiRenderer(canvas_resolution, camera_position)
+
+handler = CanvasHandler(canvas_resolution, camera_position)
+renderer = AsciiRenderer(canvas_resolution)
 
 # Define vertices of a cube floating in the middle of a unit room
 cube_verts = np.array([
@@ -272,4 +271,12 @@ weird_shape_verts = np.array([
     [0.4, 0.5, 0.4]
 ])
 
-renderer.render(weird_shape_verts)
+cube = []
+for face in cube_faces:
+    face_verts = cube_verts[face]
+    cube.append(face_verts)
+
+cubes = [cube]
+
+points = handler.process_objects(cubes)
+renderer.render(points)

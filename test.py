@@ -132,13 +132,86 @@ class AsciiRenderer:
         points_camera = self.homogeneous_to_cartesian(points_camera_homogeneous)
 
         return points_camera
-    
+
+    def points_in_polygon(self, polygon, grid_spacing=1.0):
+        """
+        Compute all grid points inside a polygon.
+
+        Parameters
+        ----------
+        polygon : (N, 2) array-like
+            Ordered vertices of the polygon (closed or open).
+        grid_spacing : float
+            Spacing between grid points.
+
+        Returns
+        -------
+        points_inside : (M, 2) ndarray
+            All grid points (x, y) inside the polygon.
+        """
+        polygon = np.asarray(polygon)
+        if not np.allclose(polygon[0], polygon[-1]):
+            polygon = np.vstack([polygon, polygon[0]])  # ensure closed
+
+        # bounding box
+        min_x, min_y = polygon.min(axis=0)
+        max_x, max_y = polygon.max(axis=0)
+
+        # create grid
+        xs = np.arange(min_x, max_x + grid_spacing, grid_spacing)
+        ys = np.arange(min_y, max_y + grid_spacing, grid_spacing)
+        xx, yy = np.meshgrid(xs, ys)
+        grid_points = np.column_stack((xx.ravel(), yy.ravel()))
+
+        # Ray casting algorithm (NumPy vectorized)
+        x = grid_points[:, 0][:, None]
+        y = grid_points[:, 1][:, None]
+        x0, y0 = polygon[:-1, 0], polygon[:-1, 1]
+        x1, y1 = polygon[1:, 0], polygon[1:, 1]
+
+        cond1 = ((y0 <= y) & (y < y1)) | ((y1 <= y) & (y < y0))
+        cond2 = x < (x1 - x0) * (y - y0) / (y1 - y0 + 1e-12) + x0
+        crossings = np.sum(cond1 & cond2, axis=1)
+        inside = crossings % 2 == 1
+
+        return grid_points[inside]
+
+
     def render(
             self,
             points_world: list
     ) -> None:
         points_camera = self.world_to_camera(points_world)
-        points_canvas = self.cartesian_to_pixel(points_camera)
+
+        # ---
+
+        # draw_points = []
+        # for point_camera in points_camera:
+        #     draw_points.append(point_camera)
+
+        # point_temp = points_camera[-1]
+        # edge_temp = points_camera[-2] - points_camera[-1]
+
+        # for point in points_camera:
+        #     edge = point_temp - point
+
+        #     for i in range(self.canvas_plane_x):
+        #         edge_vert = point + i / self.canvas_plane_x * edge
+        #         for j in range(self.canvas_plane_y):
+        #             surface_vert = edge_vert + j / self.canvas_plane_y * edge_temp
+        #             draw_points.append(surface_vert)
+                
+
+        #     point_temp2 = point_temp
+        #     point_temp = point
+        #     edge_temp = point_temp2 - point_temp
+
+        # ---
+
+        draw_points = self.points_in_polygon(points_camera)
+
+        # draw_points = points_camera
+        points_canvas = self.cartesian_to_pixel(draw_points)
 
         # Draw canvas
         for y in range(self.canvas_plane_y + 2):
@@ -151,39 +224,52 @@ class AsciiRenderer:
                     print(" ", end="" if x != self.canvas_plane_x + 1 else "\n")
 
 
-canvas_resolution = (40, 20)
+canvas_resolution = (160, 80)
 camera_position = np.array([0.5, -1.0, 0.5])
 renderer = AsciiRenderer(canvas_resolution, camera_position)
 
 # Define vertices of a cube floating in the middle of a unit room
-# cube_verts = np.array([
-#     # x     y     z
-#     [0.25, 0.25, 0.25], # 0: bottom front-left corner
-#     [0.75, 0.25, 0.25], # 1: bottom front-right corner
-#     [0.75, 0.75, 0.25], # 2: bottom back-right corner
-#     [0.25, 0.75, 0.25], # 3: bottom back-left corner
-#     [0.25, 0.25, 0.75], # 4: top front-left corner
-#     [0.75, 0.25, 0.75], # 5: top front-right corner
-#     [0.75, 0.75, 0.75], # 6: top back-right corner
-#     [0.25, 0.75, 0.75]  # 7: top back-left corner
-# ])
+cube_verts = np.array([
+    # x     y     z
+    [0.25, 0.25, 0.25], # 0: bottom front left corner
+    [0.75, 0.25, 0.25], # 1: bottom front right corner
+    [0.75, 0.75, 0.25], # 2: bottom back right corner
+    [0.25, 0.75, 0.25], # 3: bottom back left corner
+    [0.25, 0.25, 0.75], # 4: top front left corner
+    [0.75, 0.25, 0.75], # 5: top front right corner
+    [0.75, 0.75, 0.75], # 6: top back right corner
+    [0.25, 0.75, 0.75]  # 7: top back left corner
+])
 
 # # Define faces of the cube
-# cube_faces = np.array([
-#     [0, 1, 2, 3], # 0: bottom
-#     [4, 5, 6, 7], # 1: top
-#     [0, 1, 4, 5], # 2: front
-#     [1, 2, 5, 6], # 3: right
-#     [2, 3, 6, 7], # 4: back
-#     [3, 0, 7, 4]  # 5: left
-# ])
+cube_faces = np.array([
+    [0, 1, 2, 3], # 0: bottom
+    [4, 5, 6, 7], # 1: top
+    [0, 1, 5, 4], # 2: front
+    [1, 2, 6, 5], # 3: right
+    [2, 3, 7, 6], # 4: back
+    [3, 0, 4, 7]  # 5: left
+])
 
-# Define point to transform
-point_world_01 = np.array([0.25, 0.5, 0.25])
-point_world_02 = np.array([0.75, 0.5, 0.25])
-point_world_03 = np.array([0.75, 0.5, 0.75])
-point_world_04 = np.array([0.25, 0.5, 0.75])
+cube_front_verts = cube_verts[cube_faces[2]]
 
-world_points = [point_world_01, point_world_02, point_world_03, point_world_04]
+sideways_rectangle_verts = np.array([
+    [0.5, 0.5, 0.25],
+    [0.75, 0.5, 0.5],
+    [0.5, 0.5, 0.75],
+    [0.25, 0.5, 0.5]
+])
 
-renderer.render(world_points)
+weird_shape_verts = np.array([
+    [0.1, 0.5, 0.1],
+    [0.5, 0.5, 0.4],
+    [0.9, 0.5, 0.1],
+    [0.9, 0.5, 0.9],
+    [0.3, 0.5, 0.8],
+    [0.5, 0.5, 0.9],
+    [0.1, 0.5, 0.9],
+    [0.1, 0.5, 0.7],
+    [0.4, 0.5, 0.4]
+])
+
+renderer.render(weird_shape_verts)

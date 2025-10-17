@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 
+from ascii_renderer import AsciiRenderer
+from canvas_handler import CanvasHandler
+
 
 lat_center = 48.748297
 lon_center = 9.104774
@@ -45,12 +48,12 @@ for node in building["geometry"]:
     lon = node['lon']
 
     # Transformation from geographic coordinates to cartesian
-    x = radius_earth * (lat - lat_center) * math.pi / 180
-    y = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
+    y = radius_earth * math.radians(lat - lat_center) # * math.pi / 180
+    x = radius_earth * math.cos(math.radians(lat_center)) * math.radians(lon - lon_center) # * math.pi / 180
 
     # Normalize coordinates
-    x /= radius
-    y /= radius
+    x = (x + radius) / (radius * 2)
+    y = (y + radius) / (radius * 2)
 
     geometry.append((x, y))
 
@@ -68,81 +71,83 @@ x, y = geom[:, 0], geom[:, 1]
 bottom = np.column_stack((x, y, np.zeros_like(x)))
 top = np.column_stack((x, y, np.full_like(x, height)))
 
-sides = []
-for idx in range(len(x) - 1):
-    verts = [[bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]]]
-    sides.append(verts)
-    ax.add_collection3d(Poly3DCollection(verts, color='gray'))
+building_polygon = []
+building_polygon.append(bottom)
+building_polygon.append(top)
 
-print(sides)
+for idx in range(len(x) - 1):
+    face = np.array([bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]])
+    building_polygon.append(face)
+    ax.add_collection3d(Poly3DCollection([face], color='gray'))
 
 ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
 ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
-plt.show()
-
 # ---
 
-# canvas_resolution = (80, 40)
-# light_position = np.array([1.0, 0.4, 0.8])
-# camera_position = np.array([1.5, -2.0, 1.0])
-# focal_length = 2.0
+canvas_resolution = (160, 80)
+light_position = np.array([1.0, 0.4, 0.8])
+camera_position = np.array([0.5, -1.0, 0.5])
+focal_length = 1.0
 
-# handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
-# renderer = AsciiRenderer(canvas_resolution)
+handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
+renderer = AsciiRenderer(canvas_resolution)
 
-# # Define vertices of a cube floating in the middle of a unit room
-# cube_verts = np.array([
-#     # x     y     z
-#     [0.25, 0.25, 0.25], # 0: bottom front left corner
-#     [0.75, 0.25, 0.25], # 1: bottom front right corner
-#     [0.75, 0.75, 0.25], # 2: bottom back right corner
-#     [0.25, 0.75, 0.25], # 3: bottom back left corner
-#     [0.25, 0.25, 0.75], # 4: top front left corner
-#     [0.75, 0.25, 0.75], # 5: top front right corner
-#     [0.75, 0.75, 0.75], # 6: top back right corner
-#     [0.25, 0.75, 0.75]  # 7: top back left corner
-# ])
+# Define vertices of a cube floating in the middle of a unit room
+cube_verts = np.array([
+    # x     y     z
+    [0.25, 0.25, 0.25], # 0: bottom front left corner
+    [0.75, 0.25, 0.25], # 1: bottom front right corner
+    [0.75, 0.75, 0.25], # 2: bottom back right corner
+    [0.25, 0.75, 0.25], # 3: bottom back left corner
+    [0.25, 0.25, 0.75], # 4: top front left corner
+    [0.75, 0.25, 0.75], # 5: top front right corner
+    [0.75, 0.75, 0.75], # 6: top back right corner
+    [0.25, 0.75, 0.75]  # 7: top back left corner
+])
 
 # # # Define faces of the cube
-# cube_faces = np.array([
-#     [0, 1, 2, 3], # 0: bottom
-#     [4, 5, 6, 7], # 1: top
-#     [0, 1, 5, 4], # 2: front
-#     [1, 2, 6, 5], # 3: right
-#     [2, 3, 7, 6], # 4: back
-#     [3, 0, 4, 7]  # 5: left
-# ])
+cube_faces = np.array([
+    [0, 1, 2, 3], # 0: bottom
+    [4, 5, 6, 7], # 1: top
+    [0, 1, 5, 4], # 2: front
+    [1, 2, 6, 5], # 3: right
+    [2, 3, 7, 6], # 4: back
+    [3, 0, 4, 7]  # 5: left
+])
 
-# cube_front_verts = cube_verts[cube_faces[2]]
+cube = []
+for face in cube_faces:
+    face_verts = cube_verts[face]
+    cube.append(face_verts)
 
-# sideways_rectangle_verts = np.array([
-#     [0.5, 0.5, 0.25],
-#     [0.75, 0.5, 0.5],
-#     [0.5, 0.5, 0.75],
-#     [0.25, 0.5, 0.5]
-# ])
+cubes = [cube]
 
-# weird_shape_verts = np.array([
-#     [0.1, 0.5, 0.1],
-#     [0.5, 0.5, 0.4],
-#     [0.9, 0.5, 0.1],
-#     [0.9, 0.5, 0.9],
-#     [0.3, 0.5, 0.8],
-#     [0.5, 0.5, 0.9],
-#     [0.1, 0.5, 0.9],
-#     [0.1, 0.5, 0.7],
-#     [0.4, 0.5, 0.4]
-# ])
+buildings_polygons = [building_polygon]
 
-# cube = []
-# for face in cube_faces:
-#     face_verts = cube_verts[face]
-#     cube.append(face_verts)
+handler.process_objects(buildings_polygons)
+points = handler.canvas
+renderer.render(points)
 
-# cubes = [cube]
+# ---
+look_at = np.array([0.5, 0.5, 0.5])
 
-# handler.process_objects(cubes)
-# points = handler.canvas
-# renderer.render(points)
+# Compute view direction vector
+view_dir = look_at - camera_position
+view_dir /= np.linalg.norm(view_dir)
 
+# Convert to spherical coordinates for elevation and azimuth
+r = np.linalg.norm(view_dir)
+elev = np.degrees(np.arcsin(view_dir[2]))           # z-component controls elevation
+azim = np.degrees(np.arctan2(view_dir[1], view_dir[0]))  # y/x gives azimuth
+
+# Apply the camera view
+ax.view_init(elev=elev, azim=azim)
+ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio for x, y, z
+
+# Optional: set axis limits (since your buildings are in [0,1])
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+ax.set_zlim(0, 1)
+
+plt.show()

@@ -38,35 +38,49 @@ class NominatimAPI:
         return float(lat), float(lon)
 
 
-nom = NominatimAPI()
-location = "Frankfurt"
+class OverpassAPI:
+    def __init__(
+            self
+    ) -> None:
+        self.url = "https://overpass-api.de/api/interpreter"
+        
+    def request_data(
+            self,
+            lat: float,
+            lon: float,
+            radius: int
+    ) -> dict:
+        query = f"""
+            [out:json];
+            (
+            way["building"](around:{radius},{lat_center},{lon_center});
+            );
+            out geom;
+            """
+        
+        req = requests.post(self.url, data=query)
+        data = req.json()
 
-lat_center, lon_center = nom.request_data(location)
+        buildings = data["elements"]
+
+        return buildings
+
+
+location = "Frankfurt"
 radius = 250
 
+nom = NominatimAPI()
+ovp = OverpassAPI()
+
+lat_center, lon_center = nom.request_data(location)
+buildings = ovp.request_data(lat_center, lon_center, radius)
+
+
 radius_earth = 6371000
-
-url = "https://overpass-api.de/api/interpreter"
-
-payload = r''
-with open('buildings.overpassql', 'r') as query:
-    payload += (query.read().replace('\n', ''))
-
-payload = f"""
-[out:json];
-(
-  way["building"](around:{radius},{lat_center},{lon_center});
-);
-out geom;
-"""
-
-r = requests.post(url, data=payload)
-building_data = r.json()
 
 floor_height = 3
 default_height = 10
 
-buildings = building_data["elements"]
 buildings_polygons = []
 
 for building in buildings:

@@ -10,8 +10,8 @@ from ascii_renderer import AsciiRenderer
 from canvas_handler import CanvasHandler
 
 
-lat_center = 48.748297
-lon_center = 9.104774
+lat_center = 40.764954591693716 # 48.748297
+lon_center = -73.98034581499466 # 9.104774
 radius = 100
 
 radius_earth = 6371000
@@ -40,94 +40,69 @@ floor_height = 3
 default_height = 10
 
 buildings = building_data["elements"]
-building = buildings[0]
+buildings_polygons = []
 
-geometry = []
-for node in building["geometry"]:
-    lat = node["lat"]
-    lon = node['lon']
+for building in buildings:
+    
+    # for key, val in building.items():
+    #     print(f"{key}: {val}")
+    
+    geometry = []
+    for node in building["geometry"]:
+        lat = node["lat"]
+        lon = node['lon']
 
-    # Transformation from geographic coordinates to cartesian
-    y = radius_earth * math.radians(lat - lat_center) # * math.pi / 180
-    x = radius_earth * math.cos(math.radians(lat_center)) * math.radians(lon - lon_center) # * math.pi / 180
+        # Transformation from geographic coordinates to cartesian
+        y = radius_earth * math.radians(lat - lat_center) # * math.pi / 180
+        x = radius_earth * math.cos(math.radians(lat_center)) * math.radians(lon - lon_center) # * math.pi / 180
 
-    # Normalize coordinates
-    x = (x + radius) / (radius * 2)
-    y = (y + radius) / (radius * 2)
+        # Normalize coordinates
+        x = (x + radius) / (radius * 2)
+        y = (y + radius) / (radius * 2)
 
-    geometry.append((x, y))
+        geometry.append((x, y))
 
-if "building:levels" in building["tags"]:
-    levels = int(building["tags"]["building:levels"])
-    height = levels * floor_height
-else:
-    height = default_height
+    if "building:levels" in building["tags"]:
+        levels = int(building["tags"]["building:levels"])
+        height = levels * floor_height
+    else:
+        height = default_height
 
-height /= radius
+    height /= (radius * 2)
 
-geom = np.array(geometry)
-x, y = geom[:, 0], geom[:, 1]
+    geom = np.array(geometry)
+    x, y = geom[:, 0], geom[:, 1]
 
-bottom = np.column_stack((x, y, np.zeros_like(x)))
-top = np.column_stack((x, y, np.full_like(x, height)))
+    bottom = np.column_stack((x, y, np.zeros_like(x)))
+    top = np.column_stack((x, y, np.full_like(x, height)))
 
-building_polygon = []
-building_polygon.append(bottom)
-building_polygon.append(top)
+    building_polygon = []
+    building_polygon.append(bottom)
+    building_polygon.append(top)
 
-for idx in range(len(x) - 1):
-    face = np.array([bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]])
-    building_polygon.append(face)
-    ax.add_collection3d(Poly3DCollection([face], color='gray'))
+    for idx in range(len(x) - 1):
+        face = np.array([bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]])
+        building_polygon.append(face)
+        ax.add_collection3d(Poly3DCollection([face], color='gray'))
 
-ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
-ax.add_collection3d(Poly3DCollection([top], color='gray'))
+    ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
+    ax.add_collection3d(Poly3DCollection([top], color='gray'))
+
+    buildings_polygons.append(building_polygon)
 
 # ---
 
 canvas_resolution = (640, 320)
-light_position = np.array([1.0, 0.0, 1.0])
-camera_position = np.array([1.0, -1.0, 1.0])
+light_position = np.array([1.0, 0.4, 0.8])
+camera_position = np.array([1.5, -1.0, 1.0])
 focal_length = 1.0
 
 handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
 renderer = AsciiRenderer(canvas_resolution)
 
-# Define vertices of a cube floating in the middle of a unit room
-cube_verts = np.array([
-    # x     y     z
-    [0.25, 0.25, 0.25], # 0: bottom front left corner
-    [0.75, 0.25, 0.25], # 1: bottom front right corner
-    [0.75, 0.75, 0.25], # 2: bottom back right corner
-    [0.25, 0.75, 0.25], # 3: bottom back left corner
-    [0.25, 0.25, 0.75], # 4: top front left corner
-    [0.75, 0.25, 0.75], # 5: top front right corner
-    [0.75, 0.75, 0.75], # 6: top back right corner
-    [0.25, 0.75, 0.75]  # 7: top back left corner
-])
-
-# # # Define faces of the cube
-cube_faces = np.array([
-    [0, 1, 2, 3], # 0: bottom
-    [4, 5, 6, 7], # 1: top
-    [0, 1, 5, 4], # 2: front
-    [1, 2, 6, 5], # 3: right
-    [2, 3, 7, 6], # 4: back
-    [3, 0, 4, 7]  # 5: left
-])
-
-cube = []
-for face in cube_faces:
-    face_verts = cube_verts[face]
-    cube.append(face_verts)
-
-cubes = [cube]
-
-buildings_polygons = [building_polygon]
-
 handler.process_objects(buildings_polygons)
 points = handler.canvas
-renderer.render(points)
+# renderer.render(points)
 
 # ---
 look_at = np.array([0.5, 0.5, 0.5])
@@ -150,4 +125,4 @@ ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.set_zlim(0, 1)
 
-plt.show()
+# plt.show()

@@ -2,8 +2,6 @@ import json
 import requests
 import math
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 
 from ascii_renderer import AsciiRenderer
@@ -37,9 +35,6 @@ out geom;
 r = requests.post(url, data=payload)
 building_data = r.json()
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
-
 floor_height = 3
 default_height = 10
 
@@ -47,10 +42,6 @@ buildings = building_data["elements"]
 buildings_polygons = []
 
 for building in buildings:
-    
-    # for key, val in building.items():
-    #     print(f"{key}: {val}")
-    
     geometry = []
     for node in building["geometry"]:
         lat = node["lat"]
@@ -93,14 +84,8 @@ for building in buildings:
     for idx in range(len(x) - 1):
         face = np.array([bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]])
         building_polygon.append(face)
-        ax.add_collection3d(Poly3DCollection([face], color='gray'))
-
-    ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
-    ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
     buildings_polygons.append(building_polygon)
-
-# ---
 
 canvas_resolution = (640, 320)
 light_position = np.array([1.5, -1.0, 1.0])
@@ -113,26 +98,3 @@ renderer = AsciiRenderer(canvas_resolution)
 handler.process_objects(buildings_polygons)
 points = handler.canvas
 renderer.render(points)
-
-# ---
-look_at = np.array([0.5, 0.5, 0.5])
-
-# Compute view direction vector
-view_dir = look_at - camera_position
-view_dir /= np.linalg.norm(view_dir)
-
-# Convert to spherical coordinates for elevation and azimuth
-r = np.linalg.norm(view_dir)
-elev = np.degrees(np.arcsin(view_dir[2]))           # z-component controls elevation
-azim = np.degrees(np.arctan2(view_dir[1], view_dir[0]))  # y/x gives azimuth
-
-# Apply the camera view
-ax.view_init(elev=elev, azim=azim)
-ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio for x, y, z
-
-# Optional: set axis limits (since your buildings are in [0,1])
-ax.set_xlim(0, 1)
-ax.set_ylim(0, 1)
-ax.set_zlim(0, 1)
-
-# plt.show()

@@ -10,17 +10,17 @@ from ascii_renderer import AsciiRenderer
 from canvas_handler import CanvasHandler
 
 
-lat_center = 40.764954591693716 # 48.748297
-lon_center = -73.98034581499466 # 9.104774
+lat_center = 48.7877151357412 # 40.764954591693716 # 48.748297
+lon_center = 9.200721837822925 # -73.98034581499466 # 9.104774
 radius = 100
 
 radius_earth = 6371000
 
 url = "https://overpass-api.de/api/interpreter"
 
-# payload = r''
-# with open('buildings.overpassql', 'r') as query:
-#     payload += (query.read().replace('\n', ''))
+payload = r''
+with open('buildings.overpassql', 'r') as query:
+    payload += (query.read().replace('\n', ''))
 
 payload = f"""
 [out:json];
@@ -44,8 +44,8 @@ buildings_polygons = []
 
 for building in buildings:
     
-    # for key, val in building.items():
-    #     print(f"{key}: {val}")
+    for key, val in building.items():
+        print(f"{key}: {val}")
     
     geometry = []
     for node in building["geometry"]:
@@ -62,7 +62,13 @@ for building in buildings:
 
         geometry.append((x, y))
 
-    if "building:levels" in building["tags"]:
+    if "height" in building["tags"]:
+        height_tag = building["tags"]["height"]
+        height_tag = height_tag.replace(";", ".")
+        height_tag = height_tag.replace(" m", "")
+
+        height = int(float(height_tag))
+    elif "building:levels" in building["tags"]:
         levels = int(building["tags"]["building:levels"])
         height = levels * floor_height
     else:
@@ -93,8 +99,8 @@ for building in buildings:
 # ---
 
 canvas_resolution = (640, 320)
-light_position = np.array([1.0, 0.4, 0.8])
-camera_position = np.array([1.5, -1.0, 1.0])
+light_position = np.array([1.5, -1.0, 1.0])
+camera_position = np.array([1.5, -1.0, 0.8])
 focal_length = 1.0
 
 handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
@@ -102,7 +108,7 @@ renderer = AsciiRenderer(canvas_resolution)
 
 handler.process_objects(buildings_polygons)
 points = handler.canvas
-# renderer.render(points)
+renderer.render(points)
 
 # ---
 look_at = np.array([0.5, 0.5, 0.5])

@@ -49,8 +49,8 @@ for node in building["geometry"]:
     y = radius_earth * math.cos(lat_center) * (lon - lon_center) * math.pi / 180
 
     # Normalize coordinates
-    # x /= radius
-    # y /= radius
+    x /= radius
+    y /= radius
 
     geometry.append((x, y))
 
@@ -60,7 +60,7 @@ if "building:levels" in building["tags"]:
 else:
     height = default_height
 
-# height /= radius
+height /= radius
 
 geom = np.array(geometry)
 x, y = geom[:, 0], geom[:, 1]
@@ -68,53 +68,81 @@ x, y = geom[:, 0], geom[:, 1]
 bottom = np.column_stack((x, y, np.zeros_like(x)))
 top = np.column_stack((x, y, np.full_like(x, height)))
 
+sides = []
 for idx in range(len(x) - 1):
     verts = [[bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]]]
+    sides.append(verts)
     ax.add_collection3d(Poly3DCollection(verts, color='gray'))
+
+print(sides)
 
 ax.add_collection3d(Poly3DCollection([bottom], color='gray'))
 ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
 plt.show()
 
-# ascii_chars = np.array(list(" .:-=+*#%@"))
+# ---
 
-# def render_ascii(res_x, res_y):
-#     # Generate grid coordinates
-#     x = np.linspace(-1, 1, res_x)
-#     y = np.linspace(-1, 1, res_y)
-#     X, Y = np.meshgrid(x, y)
-    
-#     # Define a simple 3D shape: z = sqrt(1 - x^2 - y^2) (sphere upper hemisphere)
-#     mask = X**2 + Y**2 <= 1
-#     Z = np.zeros_like(X)
-#     Z[mask] = np.sqrt(1 - X[mask]**2 - Y[mask]**2)
-    
-#     # Define a light direction (normalized)
-#     L = np.array([0.4, 0.4, 0.8])
-#     L /= np.linalg.norm(L)
-    
-#     # Compute surface normals
-#     Nx = X
-#     Ny = Y
-#     Nz = Z
-#     norm = np.sqrt(Nx**2 + Ny**2 + Nz**2)
-#     Nx, Ny, Nz = Nx / norm, Ny / norm, Nz / norm
+# canvas_resolution = (80, 40)
+# light_position = np.array([1.0, 0.4, 0.8])
+# camera_position = np.array([1.5, -2.0, 1.0])
+# focal_length = 2.0
 
-#     # Lambertian shading: I = max(0, n·l)
-#     I = Nx*L[0] + Ny*L[1] + Nz*L[2]
-#     I = np.clip(I, 0, 1)
-    
-#     # Map intensity to ASCII characters
-#     indices = (I * (len(ascii_chars)-1)).astype(int)
-#     indices[~mask] = 0  # background
-#     chars = ascii_chars[indices]
-    
-#     # Print ASCII image
-#     print(f"\nResolution: {res_x}x{res_y}\n")
-#     for row in chars[::-1]:  # flip vertically
-#         print("".join(row))
+# handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
+# renderer = AsciiRenderer(canvas_resolution)
 
-# # Try multiple resolutions
-# for res in [(20, 10), (40, 20), (80, 40), (160, 80)]:
-#     render_ascii(*res)
+# # Define vertices of a cube floating in the middle of a unit room
+# cube_verts = np.array([
+#     # x     y     z
+#     [0.25, 0.25, 0.25], # 0: bottom front left corner
+#     [0.75, 0.25, 0.25], # 1: bottom front right corner
+#     [0.75, 0.75, 0.25], # 2: bottom back right corner
+#     [0.25, 0.75, 0.25], # 3: bottom back left corner
+#     [0.25, 0.25, 0.75], # 4: top front left corner
+#     [0.75, 0.25, 0.75], # 5: top front right corner
+#     [0.75, 0.75, 0.75], # 6: top back right corner
+#     [0.25, 0.75, 0.75]  # 7: top back left corner
+# ])
+
+# # # Define faces of the cube
+# cube_faces = np.array([
+#     [0, 1, 2, 3], # 0: bottom
+#     [4, 5, 6, 7], # 1: top
+#     [0, 1, 5, 4], # 2: front
+#     [1, 2, 6, 5], # 3: right
+#     [2, 3, 7, 6], # 4: back
+#     [3, 0, 4, 7]  # 5: left
+# ])
+
+# cube_front_verts = cube_verts[cube_faces[2]]
+
+# sideways_rectangle_verts = np.array([
+#     [0.5, 0.5, 0.25],
+#     [0.75, 0.5, 0.5],
+#     [0.5, 0.5, 0.75],
+#     [0.25, 0.5, 0.5]
+# ])
+
+# weird_shape_verts = np.array([
+#     [0.1, 0.5, 0.1],
+#     [0.5, 0.5, 0.4],
+#     [0.9, 0.5, 0.1],
+#     [0.9, 0.5, 0.9],
+#     [0.3, 0.5, 0.8],
+#     [0.5, 0.5, 0.9],
+#     [0.1, 0.5, 0.9],
+#     [0.1, 0.5, 0.7],
+#     [0.4, 0.5, 0.4]
+# ])
+
+# cube = []
+# for face in cube_faces:
+#     face_verts = cube_verts[face]
+#     cube.append(face_verts)
+
+# cubes = [cube]
+
+# handler.process_objects(cubes)
+# points = handler.canvas
+# renderer.render(points)
+

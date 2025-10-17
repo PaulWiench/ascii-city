@@ -49,7 +49,7 @@ class OverpassAPI:
             lat: float,
             lon: float,
             radius: int
-    ) -> dict:
+    ) -> list:
         query = f"""
             [out:json];
             (
@@ -66,6 +66,94 @@ class OverpassAPI:
         return buildings
 
 
+class ModelBuilder:
+    def __init__(
+            self,
+            lat_center: float,
+            lon_center: float,
+            radius: int
+    ) -> None:
+        self.radius_earth = 6371000
+        self.default_floor_height = 3
+        self.default_building_height = 10
+
+        self.lat_center = lat_center
+        self.lon_center = lon_center
+        self.radius = radius
+
+    def geographic_to_cartesian(
+            self,
+            lat: float,
+            lon: float
+    ) -> tuple:
+        x = self.radius_earth * math.cos(math.radians(self.lat_center)) * math.radians(lon - self.lon_center)
+        y = self.radius_earth * math.radians(lat - self.lat_center)
+
+        x = (x + self.radius) / (self.radius * 2)
+        y = (y + self.radius) / (self.radius * 2)
+
+        return x, y
+    
+    def compute_building_height(
+            self,
+            tags: dict
+    ) -> float:
+        if "height" in tags:
+            height_tag = tags["height"]
+            height_tag = height_tag.replace(";", ".")
+            height_tag = height_tag.replace(" m", "")
+
+            height = int(float(height_tag))
+        
+        elif "building:levels" in tags:
+            levels = int(float(tags["building:levels"]))
+
+            height = levels * self.default_floor_height
+        
+        else:
+            height = self.default_building_height
+
+        height /= (self.radius * 2)
+
+        return height
+
+    def compute_buildings_faces(
+            self,
+            buildings: list
+    ) -> list:
+        buildings_faces = []
+
+        for building in buildings:
+            building_vertices = []
+            building_faces = []
+
+            for vertex in building["geometry"]:
+                lat = vertex["lat"]
+                lon = vertex["lon"]
+
+                x, y = self.geographic_to_cartesian(lat, lon)
+                building_vertices.append((x, y))
+            
+            height = self.compute_building_height(building["tags"])
+
+            building_vertices = np.array(building_vertices)
+            x, y = building_vertices[:, 0], building_vertices[:, 1]
+
+            bottom = np.column_stack((x, y, np.zeros_like(x)))
+            building_faces.append(bottom)
+
+            top = np.column_stack((x, y, np.full_like(x, height)))
+            building_faces.append(top)
+
+            for idx in range(len(x) - 1):
+                wall = np.array([bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]])
+                building_faces.append(wall)
+
+            buildings_faces.append(building_faces)
+
+        return buildings_faces
+
+
 location = "Frankfurt"
 radius = 250
 
@@ -75,59 +163,9 @@ ovp = OverpassAPI()
 lat_center, lon_center = nom.request_data(location)
 buildings = ovp.request_data(lat_center, lon_center, radius)
 
+builder = ModelBuilder(lat_center, lon_center, radius)
 
-radius_earth = 6371000
-
-floor_height = 3
-default_height = 10
-
-buildings_polygons = []
-
-for building in buildings:
-    geometry = []
-    for node in building["geometry"]:
-        lat = node["lat"]
-        lon = node['lon']
-
-        # Transformation from geographic coordinates to cartesian
-        y = radius_earth * math.radians(lat - lat_center) # * math.pi / 180
-        x = radius_earth * math.cos(math.radians(lat_center)) * math.radians(lon - lon_center) # * math.pi / 180
-
-        # Normalize coordinates
-        x = (x + radius) / (radius * 2)
-        y = (y + radius) / (radius * 2)
-
-        geometry.append((x, y))
-
-    if "height" in building["tags"]:
-        height_tag = building["tags"]["height"]
-        height_tag = height_tag.replace(";", ".")
-        height_tag = height_tag.replace(" m", "")
-
-        height = int(float(height_tag))
-    elif "building:levels" in building["tags"]:
-        levels = int(float(building["tags"]["building:levels"]))
-        height = levels * floor_height
-    else:
-        height = default_height
-
-    height /= (radius * 2)
-
-    geom = np.array(geometry)
-    x, y = geom[:, 0], geom[:, 1]
-
-    bottom = np.column_stack((x, y, np.zeros_like(x)))
-    top = np.column_stack((x, y, np.full_like(x, height)))
-
-    building_polygon = []
-    building_polygon.append(bottom)
-    building_polygon.append(top)
-
-    for idx in range(len(x) - 1):
-        face = np.array([bottom[idx], bottom[idx + 1], top[idx + 1], top[idx]])
-        building_polygon.append(face)
-
-    buildings_polygons.append(building_polygon)
+buildings_faces = builder.compute_buildings_faces(buildings)
 
 canvas_resolution = (640, 320)
 light_position = np.array([1.5, -1.0, 1.0])
@@ -137,6 +175,6 @@ focal_length = 1.0
 handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)
 renderer = AsciiRenderer(canvas_resolution)
 
-handler.process_objects(buildings_polygons)
+handler.process_objects(buildings_faces)
 points = handler.canvas
 renderer.render(points)

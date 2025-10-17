@@ -10,9 +10,14 @@ from ascii_renderer import AsciiRenderer
 from canvas_handler import CanvasHandler
 
 
-lat_center = 48.7877151357412 # 40.764954591693716 # 48.748297
-lon_center = 9.200721837822925 # -73.98034581499466 # 9.104774
-radius = 100
+location_query = "Frankfurt"
+
+nominatim = requests.get("https://nominatim.openstreetmap.org/search", params={"q": location_query, "format": "json", "limit": 1, "addressdetails": 1}, headers={"User-Agent": "MyApp/1.0 (you@example.com)"})
+print(nominatim.json()[0]["lat"])
+
+lat_center = float(nominatim.json()[0]["lat"]) # 10 # 48.7877151357412 # 40.764954591693716 # 48.748297
+lon_center = float(nominatim.json()[0]["lon"]) # 9.200721837822925 # -73.98034581499466 # 9.104774
+radius = 250
 
 radius_earth = 6371000
 
@@ -44,8 +49,8 @@ buildings_polygons = []
 
 for building in buildings:
     
-    for key, val in building.items():
-        print(f"{key}: {val}")
+    # for key, val in building.items():
+    #     print(f"{key}: {val}")
     
     geometry = []
     for node in building["geometry"]:

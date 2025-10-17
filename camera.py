@@ -22,10 +22,10 @@ class Camera:
         self.camera_z_axis = self.world_middle - self.camera_center
         self.camera_z_axis /= np.linalg.norm(self.camera_z_axis)
 
-        self.camera_y_axis = np.cross(self.camera_z_axis, world_z_axis)
-        self.camera_y_axis /= np.linalg.norm(self.camera_y_axis)
+        self.camera_x_axis = np.cross(self.camera_z_axis, world_z_axis)
+        self.camera_x_axis /= np.linalg.norm(self.camera_x_axis)
 
-        self.camera_x_axis = np.cross(self.camera_y_axis, self.camera_z_axis)
+        self.camera_y_axis = np.cross(self.camera_x_axis, self.camera_z_axis)
 
         self.focal_length = focal_length
 

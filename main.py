@@ -85,9 +85,9 @@ ax.add_collection3d(Poly3DCollection([top], color='gray'))
 
 # ---
 
-canvas_resolution = (160, 80)
-light_position = np.array([1.0, 0.4, 0.8])
-camera_position = np.array([0.5, -1.0, 0.5])
+canvas_resolution = (640, 320)
+light_position = np.array([1.0, 0.0, 1.0])
+camera_position = np.array([1.0, -1.0, 1.0])
 focal_length = 1.0
 
 handler = CanvasHandler(canvas_resolution, light_position, camera_position, focal_length)

@@ -1,4 +1,3 @@
-import json
 import requests
 import math
 
@@ -8,12 +7,41 @@ from ascii_renderer import AsciiRenderer
 from canvas_handler import CanvasHandler
 
 
-location_query = "Frankfurt"
+class NominatimAPI:
+    def __init__(
+            self
+    ) -> None:
+        self.url = "https://nominatim.openstreetmap.org/search"
 
-nominatim = requests.get("https://nominatim.openstreetmap.org/search", params={"q": location_query, "format": "json", "limit": 1, "addressdetails": 1}, headers={"User-Agent": "MyApp/1.0 (you@example.com)"})
+        self.params = {
+            "format": "json",
+            "limit": 1,
+            "addressdetails": 1
+        }
 
-lat_center = float(nominatim.json()[0]["lat"]) # 10 # 48.7877151357412 # 40.764954591693716 # 48.748297
-lon_center = float(nominatim.json()[0]["lon"]) # 9.200721837822925 # -73.98034581499466 # 9.104774
+        self.headers = {
+            "User-Agent": "ascii-city/0.1.0 (wienchpaul@gmail.com)"
+        }
+
+    def request_data(
+            self,
+            location: str
+    ) -> tuple:
+        self.params["q"] = location
+
+        req = requests.get(self.url, params=self.params, headers=self.headers)
+        data = req.json()[0]
+
+        lat = data["lat"]
+        lon = data["lon"]
+
+        return float(lat), float(lon)
+
+
+nom = NominatimAPI()
+location = "Frankfurt"
+
+lat_center, lon_center = nom.request_data(location)
 radius = 250
 
 radius_earth = 6371000

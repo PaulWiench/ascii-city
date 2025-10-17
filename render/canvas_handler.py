@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from camera import Camera
+from render.camera import Camera
 
 
 class CanvasHandler:
@@ -123,7 +123,7 @@ class CanvasHandler:
 
     def cartesian_to_pixel(
             self,
-            points_cartesian: list
+            points_cartesian: np.ndarray
     ) -> list:
         points_pixel = []
         for point_cartesian in points_cartesian:

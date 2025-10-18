@@ -1,5 +1,3 @@
-# import argparse
-
 import fastapi
 import numpy as np
 
@@ -19,7 +17,7 @@ def display_attribution(
     hint = "Press 10x 'CTRL -' (or 'CTRL SHIFT -') to reduce font size for proper scaling\n"
     attribution = "Data © OpenStreetMaps (https://www.openstreetmap.org/copyright)"
 
-    out = info + hint + attribution    
+    out = info + hint + attribution
     return out
 
 
@@ -78,17 +76,3 @@ def radius_render(
     render = main(location, radius)
 
     return render
-
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(
-#         prog="ascii-city",
-#         description="Render 3D ascii image of any location."
-#     )
-
-#     parser.add_argument("-l", "--location", type=str, default="15 E 57th St, New York")
-#     parser.add_argument("-r", "--radius", type=int, default=250)
-
-#     args = parser.parse_args()
-
-#     main(args)

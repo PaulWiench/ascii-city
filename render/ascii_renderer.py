@@ -18,10 +18,14 @@ class AsciiRenderer:
     def render(
             self,
             points: dict
-    ) -> None:
+    ) -> str:
+        out = ""
+
         for y in range(self.canvas_plane_y):
             row = []
             for x in range(self.canvas_plane_x):
                 luminance, _, _ = points.get((x, y), (0.0, 0.0, 0.0))
                 row.append(self._luminance_to_ascii(luminance))
-            print("".join(row))
+            out += "".join(row)+ "\n"
+
+        return out

@@ -24,7 +24,7 @@ def display_attribution(
 
 
 def main(
-    location: str,
+    location: str = "15 E 57th St, New York",
     radius: int = 250
 ) -> str:
     nom = NominatimAPI()
@@ -58,7 +58,7 @@ app = fastapi.FastAPI()
 
 @app.get("/", response_class=fastapi.responses.PlainTextResponse)
 def default_render() -> str:
-    render = main("15 E 57th St, New York")
+    render = main()
 
     return render
 

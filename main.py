@@ -1,5 +1,6 @@
-import argparse
+# import argparse
 
+from fastapi import FastAPI
 import numpy as np
 
 from apis.nominatim import NominatimAPI
@@ -50,15 +51,27 @@ def main(args):
     display_attribution(location, lat_center, lon_center)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="ascii-city",
-        description="Render 3D ascii image of any location."
-    )
+app = FastAPI()
 
-    parser.add_argument("-l", "--location", type=str, default="15 E 57th St, New York")
-    parser.add_argument("-r", "--radius", type=int, default=250)
+@app.get("/")
+def root() -> dict:
+    desc = {
+        "App": "ascii-city",
+        "Description": "Terminal-based 3D location renderer",
+        "Example": "curl https://ascii-city.com/Amsterdam"
+    }
+    return desc
 
-    args = parser.parse_args()
 
-    main(args)
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         prog="ascii-city",
+#         description="Render 3D ascii image of any location."
+#     )
+
+#     parser.add_argument("-l", "--location", type=str, default="15 E 57th St, New York")
+#     parser.add_argument("-r", "--radius", type=int, default=250)
+
+#     args = parser.parse_args()
+
+#     main(args)

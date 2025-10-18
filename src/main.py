@@ -25,6 +25,8 @@ def main(
     location: str = "15 E 57th St, New York",
     radius: int = 250
 ) -> str:
+    radius = max(0, min(500, radius))
+
     nom = NominatimAPI()
     ovp = OverpassAPI()
 

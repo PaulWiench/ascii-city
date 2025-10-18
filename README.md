@@ -4,7 +4,22 @@
 Currently only buildings are rendered. So locations with a lot of buildings create cool renders. Vice versa, locations in the nowhere will yield a blank screen.
 
 ## Installation
-*work in progress*
+Clone the repository to your local machine:
+```bash
+git clone https://github.com/PaulWiench/ascii-city.git
+cd ascii-city
+```
+
+The code is built with Python 3.12.5. It is recommended to setup a virtual environment to install the required packages:
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Install the required packages inside the virtual environment:
+```
+pip install -r requirements.txt
+```
 
 ## How to run
 ```bash

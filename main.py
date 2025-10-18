@@ -9,6 +9,18 @@ from render.ascii_renderer import AsciiRenderer
 from render.canvas_handler import CanvasHandler
 
 
+def display_attribution(
+        location: str,
+        lat_center: float,
+        lon_center: float
+) -> None:
+    print(f"""
+Ascii visualization of "{location}" ({lat_center:.4f}, {lon_center:.4f}).
+Press 10x "CTRL -" (or "CTRL SHIFT -") to reduce font size for proper scaling.
+Data © OpenStreetMaps (https://www.openstreetmap.org/copyright).
+        """)
+
+
 def main(args):
     location = args.location
     radius = args.radius
@@ -34,6 +46,8 @@ def main(args):
     handler.process_objects(buildings_faces)
     points = handler.canvas
     renderer.render(points)
+
+    display_attribution(location, lat_center, lon_center)
 
 
 if __name__ == "__main__":

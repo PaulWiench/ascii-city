@@ -1,7 +1,7 @@
 # ascii-city
 **ascii-city** is a terminal-based 3D renderer that turns any address into a 3D ascii scene.
 
-Currently only buildings are rendered. So locations with a lot of buildings create cool renders. Vice versa, locations in the nowhere will yield a blank screen.
+Currently only buildings are rendered. So locations with a lot of tall buildings will result in the most interesting renders.
 
 ## Installation
 Clone the repository to your local machine:
@@ -17,20 +17,30 @@ source .venv/bin/activate
 ```
 
 Install the required packages inside the virtual environment:
-```
+```bash
 pip install -r requirements.txt
 ```
 
-## How to Run
+## How to Use
+First you need to start a server to run the api application using uvicorn:
 ```bash
-python /path/to/main.py --location "401 S Hope St, Los Angeles" --radius 250
+uvicorn main:app --reload
 ```
 
-Flags:
-- `-l, --location`: Specifies the location to render
-- `-r, --radius`: Specifies the radius around the location to render (recommended values are 200 - 1000)
+The you can fetch an ascii render by specifying a location and a radius (optional) in the url route:
+```bash
+curl http://127.0.0.1:8000/Johannesburg
+curl http://127.0.0.1:8000/Hongkong+20+Pedder+Street
+curl http://127.0.0.1:8000/New+York/500
+```
 
-To achieve actually good looking renders the render canvas size is currently hardcoded to a very large value. To be able to see good results, you have to decrease the font size of your terminal emulator. For most emulators this can easily be done by pressing `ctrl -` or `ctrl shift -` a few times.
+Route schema: `url/location/radius`
+
+`location`: Specifies the location to render. Whitespaces have to be replaced with '+' signs.
+
+`radius`: Specifies the radius around the location to render (default: 250, recommended: 100 - 500)
+
+To achieve actually good looking renders the render canvas size is currently hardcoded to a very large value. To be able to see good results, you have to decrease the font size of your terminal emulator. For most emulators this can easily be done by pressing `ctrl -` or `ctrl shift -` a few times. For most setups, decreasing the font size 10 times and maximizing the terminal emulator window yields the best results.
 
 ## Examples
 

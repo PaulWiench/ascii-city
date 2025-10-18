@@ -21,7 +21,7 @@ Install the required packages inside the virtual environment:
 pip install -r requirements.txt
 ```
 
-## How to run
+## How to Run
 ```bash
 python /path/to/main.py --location "401 S Hope St, Los Angeles" --radius 250
 ```
@@ -43,18 +43,9 @@ To achieve actually good looking renders the render canvas size is currently har
 **401 S Hope St, Los Angeles**
 ![Los Angeles](data/losangeles.png)
 
-## Drawbacks
-- Currently only buildings are rendered, so cities with huge parks (i.e. central park) can look strangely empty. I guess this more of a style choice than something I can do about.
-- All buildings have flat tops and are only pseudo 3D versions of their base. This leads to inaccuracies. I hope to find a solution soon to achieve more realistic renders.
-- Buildings with unusual shapes sometimes have rendering issues. I am working on that.
-
-## Coming soon
-- requirements.txt
-- docker image
-- api
-
-## API dependencies
+## Attribution
 This project relies on OSMs Overpass API and Nominatim API. So, huge thanks to the OSM contributors and the whole community!
 - [Overpass API](https://overpass-api.de)
 - [Nominatim API](https://nominatim.org)
 
+Data © [OpenStreetMap](https://www.openstreetmap.org/copyright)

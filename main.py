@@ -1,6 +1,6 @@
 # import argparse
 
-from fastapi import FastAPI
+import fastapi
 import numpy as np
 
 from apis.nominatim import NominatimAPI
@@ -14,18 +14,19 @@ def display_attribution(
         location: str,
         lat_center: float,
         lon_center: float
-) -> None:
-    print(f"""
-Ascii visualization of "{location}" ({lat_center:.4f}, {lon_center:.4f}).
-Press 10x "CTRL -" (or "CTRL SHIFT -") to reduce font size for proper scaling.
-Data © OpenStreetMaps (https://www.openstreetmap.org/copyright).
-        """)
+) -> str:
+    info = f"Ascii visualization of '{location}' ({lat_center:.4f}, {lon_center:.4f})\n"
+    hint = "Press 10x 'CTRL -' (or 'CTRL SHIFT -') to reduce font size for proper scaling\n"
+    attribution = "Data © OpenStreetMaps (https://www.openstreetmap.org/copyright)"
+
+    out = info + hint + attribution    
+    return out
 
 
-def main(args):
-    location = args.location
-    radius = args.radius
-
+def main(
+    location: str,
+    radius: int = 250
+) -> str:
     nom = NominatimAPI()
     ovp = OverpassAPI()
 
@@ -46,21 +47,37 @@ def main(args):
 
     handler.process_objects(buildings_faces)
     points = handler.canvas
-    renderer.render(points)
+    render = renderer.render(points)
 
-    display_attribution(location, lat_center, lon_center)
+    attribution = display_attribution(location, lat_center, lon_center)
+
+    return render + attribution
 
 
-app = FastAPI()
+app = fastapi.FastAPI()
 
-@app.get("/")
-def root() -> dict:
-    desc = {
-        "App": "ascii-city",
-        "Description": "Terminal-based 3D location renderer",
-        "Example": "curl https://ascii-city.com/Amsterdam"
-    }
-    return desc
+@app.get("/", response_class=fastapi.responses.PlainTextResponse)
+def default_render() -> str:
+    render = main("15 E 57th St, New York")
+
+    return render
+
+@app.get("/{location}", response_class=fastapi.responses.PlainTextResponse)
+def location_render(
+    location: str
+) -> str:
+    render = main(location)
+
+    return render
+
+@app.get("/{location}/{radius}", response_class=fastapi.responses.PlainTextResponse)
+def radius_render(
+    location: str,
+    radius: int
+) -> str:
+    render = main(location, radius)
+
+    return render
 
 
 # if __name__ == "__main__":

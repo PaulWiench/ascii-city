@@ -34,6 +34,6 @@ class OverpassAPI:
 
         buildings = data["elements"]
 
-        set_cache(cache_key, {"buildings": buildings})
+        set_cache(cache_key, {"buildings": buildings}, ttl_days=3)
 
         return buildings

@@ -37,6 +37,6 @@ class NominatimAPI:
         lat = data["lat"]
         lon = data["lon"]
 
-        set_cache(cache_key, {"lat": lat, "lon": lon})
+        set_cache(cache_key, {"lat": lat, "lon": lon}, ttl_days=30)
 
         return float(lat), float(lon)

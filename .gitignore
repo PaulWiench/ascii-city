@@ -4,3 +4,11 @@
 
 # Cache
 __pycache__/
+
+# AWS Lambda
+package/
+*.zip
+create_lambda_artifact.sh
+
+# AWS SAM
+template.yaml

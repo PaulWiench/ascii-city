@@ -1,6 +1,6 @@
 import requests
 
-from db.caching import get_cache
+from db.caching import get_cache, set_cache
 
 
 class NominatimAPI:
@@ -38,5 +38,7 @@ class NominatimAPI:
 
         lat = data["lat"]
         lon = data["lon"]
+
+        set_cache(cache_key, {"lat": lat, "lon": lon})
 
         return float(lat), float(lon)

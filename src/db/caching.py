@@ -2,7 +2,7 @@ import boto3
 import json
 
 
-dynamodb = boto3.resource("dynamodb")
+dynamodb = boto3.resource("dynamodb", region_name="eu-central-1")
 table = dynamodb.Table("ascii_city_cache")
 
 def get_cache(

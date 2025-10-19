@@ -1,5 +1,7 @@
 import requests
 
+from db.caching import get_cache
+
 
 class NominatimAPI:
     def __init__(
@@ -21,6 +23,14 @@ class NominatimAPI:
             self,
             location: str
     ) -> tuple:
+        cache_key = f"nominatim:{location.lower().replace(' ', '-')}"
+
+        cached = get_cache(cache_key)
+        if cached:
+            print("Got location from cache")
+            return float(cached["lat"]), float(cached["lon"])
+
+        print("Got location from nominatim api")
         self.params["q"] = location
 
         req = requests.get(self.url, params=self.params, headers=self.headers)

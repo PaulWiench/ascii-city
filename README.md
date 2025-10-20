@@ -1,14 +1,16 @@
 # ascii-city
 **ascii-city** is a terminal-based 3D renderer that turns any address into a 3D ASCII scene.
 
+**api.ascii-city.com**
+
 Currently only buildings are rendered. So locations with a lot of tall buildings will result in the most interesting renders.
 
 ## Usage
 You can render your location from the shell or a web browser by using curl and specifying a location and a radius (optional) in the url route:
 ```bash
-curl http://127.0.0.1:8000/Johannesburg
-curl http://127.0.0.1:8000/Hongkong+20+Pedder+Street
-curl http://127.0.0.1:8000/New+York/500
+curl https://api.ascii-city.com/Johannesburg
+curl https://api.ascii-city.com/Hongkong+20+Pedder+Street
+curl https://api.ascii-city.com/New+York/500
 ```
 
 Route schema: `url/location/radius`

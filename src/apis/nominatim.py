@@ -1,4 +1,7 @@
+import botocore
 import requests
+
+from src.db.caching import get_cache, set_cache
 
 
 class NominatimAPI:
@@ -21,6 +24,16 @@ class NominatimAPI:
             self,
             location: str
     ) -> tuple:
+        cache_key = f"nominatim:{location.lower().replace(' ', '-')}"
+
+        try:
+            cached = get_cache(cache_key)
+        except botocore.exceptions.NoCredentialsError:
+            cached = False
+
+        if cached:
+            return float(cached["lat"]), float(cached["lon"])
+
         self.params["q"] = location
 
         req = requests.get(self.url, params=self.params, headers=self.headers)
@@ -28,5 +41,10 @@ class NominatimAPI:
 
         lat = data["lat"]
         lon = data["lon"]
+
+        try:
+            set_cache(cache_key, {"lat": lat, "lon": lon}, ttl_days=30)
+        except botocore.exceptions.NoCredentialsError:
+            pass
 
         return float(lat), float(lon)

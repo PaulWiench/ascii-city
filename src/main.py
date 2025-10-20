@@ -1,11 +1,11 @@
 import fastapi
 import numpy as np
 
-from apis.nominatim import NominatimAPI
-from apis.overpass import OverpassAPI
-from model.builder import ModelBuilder
-from render.ascii_renderer import AsciiRenderer
-from render.canvas_handler import CanvasHandler
+from src.apis.nominatim import NominatimAPI
+from src.apis.overpass import OverpassAPI
+from src.model.builder import ModelBuilder
+from src.render.ascii_renderer import AsciiRenderer
+from src.render.canvas_handler import CanvasHandler
 
 
 def display_attribution(
@@ -25,6 +25,8 @@ def main(
     location: str = "15 E 57th St, New York",
     radius: int = 250
 ) -> str:
+    radius = max(0, min(500, radius))
+
     nom = NominatimAPI()
     ovp = OverpassAPI()
 

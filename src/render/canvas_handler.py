@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from render.camera import Camera
+from src.render.camera import Camera
 
 
 class CanvasHandler:

@@ -1,4 +1,7 @@
+import botocore
 import requests
+
+from src.db.caching import get_cache, set_cache
 
 
 class OverpassAPI:
@@ -6,13 +9,23 @@ class OverpassAPI:
             self
     ) -> None:
         self.url = "https://overpass-api.de/api/interpreter"
-        
+
     def request_data(
             self,
             lat: float,
             lon: float,
             radius: int
     ) -> list:
+        cache_key = f"nominatim:{lat}-{lon}-{radius}"
+
+        try:
+            cached = get_cache(cache_key)
+        except botocore.exceptions.NoCredentialsError:
+            cached = False
+
+        if cached:
+            return cached["buildings"]
+
         query = f"""
             [out:json];
             (
@@ -20,10 +33,15 @@ class OverpassAPI:
             );
             out geom;
             """
-        
+
         req = requests.post(self.url, data=query)
         data = req.json()
 
         buildings = data["elements"]
+
+        try:
+            set_cache(cache_key, {"buildings": buildings}, ttl_days=3)
+        except botocore.exceptions.NoCredentialsError:
+            pass
 
         return buildings

@@ -37,6 +37,8 @@ def convert_rgb_to_luminance(
 
     lum_img = np.zeros((img_height, img_width))
 
+    img = img / 255
+
     for height_idx in range(img_height):
         for width_idx in range(img_width):
             lum_img[height_idx, width_idx] = \
@@ -47,15 +49,28 @@ def convert_rgb_to_luminance(
     return lum_img
 
 
+def discretize_luminance(
+        img: np.ndarray
+) -> np.ndarray:
+    disc_img = np.floor(img * 10)/10
+
+    return disc_img
+
+
 pil = Image.open(r"C:\Code\Projects\ascii-city\images\husky.jpg")
 img = np.asarray(pil)
 
 ds_img = downsample(img, factor=8)
 
 # ds_pil = Image.fromarray(ds_img.astype(np.uint8))
-# ds_pil.save(r"C:\Code\Projects\ascii-city\images\husky_downsampled.jpg")
+# ds_pil.save(r"C:\Code\Projects\ascii-city\images\husky_01_ds.jpg")
 
 lum_img = convert_rgb_to_luminance(ds_img)
 
-lum_pil = Image.fromarray(lum_img.astype(np.uint8))
-lum_pil.save(r"C:\Code\Projects\ascii-city\images\husky_downsampled_luminance.jpg")
+# lum_pil = Image.fromarray((lum_img * 255).astype(np.uint8))
+# lum_pil.save(r"C:\Code\Projects\ascii-city\images\husky_02_lum.jpg")
+
+disc_img = discretize_luminance(lum_img)
+
+disc_pil = Image.fromarray((disc_img * 255).astype(np.uint8))
+disc_pil.save(r"C:\Code\Projects\ascii-city\images\husky_03_disc.jpg")

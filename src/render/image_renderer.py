@@ -1,5 +1,7 @@
+import os
+
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 
 def downsample(
@@ -37,7 +39,7 @@ def convert_rgb_to_luminance(
 
     lum_img = np.zeros((img_height, img_width))
 
-    img = img / 255
+    img = img / 255.0
 
     for height_idx in range(img_height):
         for width_idx in range(img_width):
@@ -52,15 +54,61 @@ def convert_rgb_to_luminance(
 def discretize_luminance(
         img: np.ndarray
 ) -> np.ndarray:
-    disc_img = np.floor(img * 10)/10
+    disc_img = np.floor(img * 9.999)/10
 
     return disc_img
 
 
+def convert_char_to_array(
+        char_set: list,
+        font_name: str,
+        font_size: int = 4
+) -> list:
+    font_path = r"C:\Users\paulw\AppData\Local\Microsoft\Windows\Fonts"
+    font = ImageFont.truetype(os.path.join(font_path, font_name + ".ttf"), font_size)
+
+    char_array = []
+
+    for char in char_set:
+        canvas = Image.new("L", (font_size, font_size), color=0)
+        draw = ImageDraw.Draw(canvas)
+        draw.text((0,0), char, fill=255, font=font)
+
+        char_array.append(np.array(canvas) / 255.0)
+
+    return char_array
+
+
+def convert_luminance_to_ascii(
+        img: np.ndarray,
+        texture: list,
+        factor: int = 4
+) -> np.ndarray:
+    img_height = img.shape[0]
+    img_width = img.shape[1]
+
+    img_ascii = np.zeros((img_height * factor, img_width * factor))
+    
+    for height_idx in range(img_height):
+        for width_idx in range(img_width):
+            lumidx = int(img[height_idx, width_idx] * 10)
+            char = texture[lumidx]
+
+            hidx = height_idx * factor
+            widx = width_idx * factor
+            img_ascii[hidx:hidx+factor, widx:widx+factor] = char
+
+    return img_ascii
+
+
+ascii_texture = [" ", ".", ";", "c", "o", "P", "O", "?", "@", "■"]
+texture_font = "BigBlueTerm437NerdFont-Regular"
+font_size = 8
+
 pil = Image.open(r"C:\Code\Projects\ascii-city\images\husky.jpg")
 img = np.asarray(pil)
 
-ds_img = downsample(img, factor=8)
+ds_img = downsample(img, factor=font_size)
 
 # ds_pil = Image.fromarray(ds_img.astype(np.uint8))
 # ds_pil.save(r"C:\Code\Projects\ascii-city\images\husky_01_ds.jpg")
@@ -72,5 +120,11 @@ lum_img = convert_rgb_to_luminance(ds_img)
 
 disc_img = discretize_luminance(lum_img)
 
-disc_pil = Image.fromarray((disc_img * 255).astype(np.uint8))
-disc_pil.save(r"C:\Code\Projects\ascii-city\images\husky_03_disc.jpg")
+# disc_pil = Image.fromarray((disc_img * 255).astype(np.uint8))
+# disc_pil.save(r"C:\Code\Projects\ascii-city\images\husky_03_disc.jpg")
+
+texture = convert_char_to_array(ascii_texture, texture_font, font_size)
+ascii_img = convert_luminance_to_ascii(disc_img, texture, font_size)
+
+ascii_pil = Image.fromarray((ascii_img * 255).astype(np.uint8))
+ascii_pil.save(r"C:\Code\Projects\ascii-city\images\husky_04_ascii.jpg")

@@ -4,6 +4,27 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 
+def crop(
+        img: np.ndarray,
+        factor: int = 4
+) -> np.ndarray:
+    height = img.shape[0]
+    width = img.shape[1]
+
+    height_extend = height % factor
+    width_extend = width % factor
+
+    crop_img = img
+
+    if height_extend != 0:
+        crop_img = crop_img[int(np.floor(height_extend/2)):-int(np.ceil(height_extend/2)), :, :]
+
+    if width_extend != 0:
+        crop_img = crop_img[:, int(np.floor(width_extend/2)):-int(np.ceil(width_extend/2)), :]
+
+    return crop_img
+
+
 def downsample(
         img: np.ndarray,
         factor: int = 4
@@ -19,11 +40,11 @@ def downsample(
     for height_step in range(0, img_height, factor):
         column = img[height_step:height_step+factor, :, :]
         column = np.mean(column, axis=0)
-        
+
         for width_step in range(0, img_width, factor):
             pixel = column[width_step:width_step+factor, :]
             pixel = np.mean(pixel, axis=0)
-            
+
             ds_img[height_step // factor, width_step // factor] = pixel
 
     return ds_img
@@ -64,7 +85,7 @@ def convert_char_to_array(
         font_name: str,
         font_size: int = 4
 ) -> list:
-    font_path = r"C:\Users\paulw\AppData\Local\Microsoft\Windows\Fonts"
+    font_path = "/home/paulos/.local/share/fonts/BigBlueTerm" # r"C:\Users\paulw\AppData\Local\Microsoft\Windows\Fonts"
     font = ImageFont.truetype(os.path.join(font_path, font_name + ".ttf"), font_size)
 
     char_array = []
@@ -88,7 +109,7 @@ def convert_luminance_to_ascii(
     img_width = img.shape[1]
 
     img_ascii = np.zeros((img_height * factor, img_width * factor))
-    
+
     for height_idx in range(img_height):
         for width_idx in range(img_width):
             lumidx = int(img[height_idx, width_idx] * 10)
@@ -105,10 +126,14 @@ ascii_texture = [" ", ".", ";", "c", "o", "P", "O", "?", "@", "■"]
 texture_font = "BigBlueTerm437NerdFont-Regular"
 font_size = 8
 
-pil = Image.open(r"C:\Code\Projects\ascii-city\images\husky.jpg")
+pil = Image.open("/home/paulos/Code/Projects/ascii-city/images/berserk.jpg")# r"C:\Code\Projects\ascii-city\images\husky.jpg")
 img = np.asarray(pil)
 
-ds_img = downsample(img, factor=font_size)
+img = img[:, :, :3]
+
+crop_img = crop(img, factor=font_size)
+
+ds_img = downsample(crop_img, factor=font_size)
 
 # ds_pil = Image.fromarray(ds_img.astype(np.uint8))
 # ds_pil.save(r"C:\Code\Projects\ascii-city\images\husky_01_ds.jpg")
@@ -127,4 +152,4 @@ texture = convert_char_to_array(ascii_texture, texture_font, font_size)
 ascii_img = convert_luminance_to_ascii(disc_img, texture, font_size)
 
 ascii_pil = Image.fromarray((ascii_img * 255).astype(np.uint8))
-ascii_pil.save(r"C:\Code\Projects\ascii-city\images\husky_04_ascii.jpg")
+ascii_pil.save("/home/paulos/Code/Projects/ascii-city/images/berserk_ascii.jpg") # r"C:\Code\Projects\ascii-city\images\husky_04_ascii.jpg")
